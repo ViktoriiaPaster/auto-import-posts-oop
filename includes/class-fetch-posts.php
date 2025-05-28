@@ -31,6 +31,11 @@ class FetchPosts
             return [];
         }
 
+        if (wp_remote_retrieve_response_code($response) !== 200) {
+            error_log('API Error: ' . wp_remote_retrieve_body($response));
+            return [];
+        }
+
         $body = wp_remote_retrieve_body($response);
         $posts = json_decode($body);
 
