@@ -20,31 +20,24 @@ class InsertPosts
         }
 
         foreach ($posts as $post) {
-            $array = get_object_vars($post);
-            $title = $array['title'];
+            $title = $post['title'];
 
             if (!post_exists($title)) {
-                $this->insertPost($array);
+                $this->insertPost($post);
             }
         }
     }
 
-    private function insertPost($array)
+    private function insertPost($post)
     {
-        $title = $array['title'];
-        $content = $array['content'];
-        $category = $array['category'];
-        $rating = $array['rating'];
-        $site_link = $array['site_link'];
-        $image = $array['image'];
 
         $author_id = $this->setAuthor();
         $date = $this->setDate();
-        $category = $this->setCategory($category);
+        $category = $this->setCategory($post['category']);
 
         $post_data = array(
-            'post_title' => $title,
-            'post_content' => $content,
+            'post_title' => $post['title'],
+            'post_content' => $post['content'],
             'post_status' => 'publish',
             'post_author' => $author_id,
             'post_category' => array($category),
@@ -54,20 +47,20 @@ class InsertPosts
         $post_id = wp_insert_post($post_data);
 
         if (!$post_id) {
-            error_log('Insert post failed:' . $title);
+            error_log('Insert post failed:' . $post['title']);
             return;
         }
 
-        if (!empty($rating)) {
-            update_post_meta($post_id, 'rating', $rating);
+        if (!empty($post['rating'])) {
+            update_post_meta($post_id, 'rating', $post['rating']);
         }
 
-        if (isset($site_link) && $site_link !== '') {
-            update_post_meta($post_id, 'site_link', $site_link);
+        if (!empty($post['site_link'])) {
+            update_post_meta($post_id, 'site_link', $post['site_link']);
         }
 
-        if (isset($image) && $image !== '') {
-            $this->uploadImage($image, $post_id);
+        if (!empty($post['image'])) {
+            $this->uploadImage($post['image'], $post_id);
         }
     }
 

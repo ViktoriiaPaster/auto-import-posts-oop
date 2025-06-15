@@ -12,61 +12,75 @@ class CreateShortcode
 
         $prefix = 'auto-import-posts';
 
-        $output = '<section class="' . $prefix . '">';
-        $output .= '<h2 class="' . $prefix . '__title">' . esc_html($shortcode_attr['title']) . '</h2>';
-        $output .= '<div class=" ' . $prefix . '__listing">';
+        ob_start();
+        ?>
+        <section class="<?php echo esc_attr($prefix); ?>">
+            <h2 class="<?php echo esc_attr($prefix); ?>__title"><?php echo esc_html($shortcode_attr['title']); ?></h2>
+            <div class="<?php echo esc_attr($prefix); ?>__listing">
 
-        foreach ($articles as $article) {
-            setup_postdata($article);
-
-            $post_id = $article->ID;
-            $title = get_the_title($post_id);
-            $category_obj = get_the_category($post_id);
-            $category = !empty($category_obj) ? $category_obj[0]->name : '';
-            $img = get_the_post_thumbnail_url($post_id) ? get_the_post_thumbnail_url($post_id) :
-                    AIP_PLUGIN_URL . 'assets/img/aip_thumbnail.png';
-            $rating = get_post_meta($post_id, 'rating', true);
-            $permalink = get_permalink($post_id);
-            $site_link = get_post_meta($post_id, 'site_link', true);
-
-            $output .= '<article class="' . $prefix . '__article">';
-            if ($img) {
-                $output .= '<div class="' . $prefix . '__article-thumbnail">';
-                $output .= '<img src="' . esc_url($img) . '" alt="' . esc_attr($title) . '">';
-                $output .= '</div>';
-            }
-
-            $output .= '<div class="' . $prefix . '__article-content">';
-            $output .= '<header class="' . $prefix . '__article-header">';
-            if ($category) {
-                $output .= '<p class="' . $prefix . '__label">' . esc_html($category) . '</p>';
-            }
-            $output .= '<p class="' . $prefix . '__article-title">' . esc_html($title) . '</p>';
-            $output .= '</header>';
-
-            $output .= '<footer class="' . $prefix . '__article-footer">';
-            $output .= '<a class="' . $prefix . '__link" href="' . esc_url($permalink) . '">' .
-                            esc_html__('Read more', 'auto-import-posts') . '</a>';
-            $output .= '<div class="' . $prefix . '__external">';
-            if (!empty($rating)) {
-                $output .= '<p class="' . $prefix . '__label">⭐️&nbsp;' . esc_html($rating) . '</p>';
-            }
-            if ($site_link !== '') {
-                $output .= '<a class="' . $prefix . '__btn" target="_blank" ' .
-                           'rel="nofollow noopener noreferrer" href="' . esc_url($site_link) . '">' .
-                           esc_html__('Visit Site', 'auto-import-posts') . '</a>';
-            }
-            $output .= '</div>';
-            $output .= '</footer>';
-            $output .= '</div>';
-            $output .= '</article>';
-        }
-        $output .= '</div>';
-        $output .= '</section>';
-
+            <?php foreach ($articles as $article) :
+                echo $this->renderSinglePost($article, $prefix);
+            endforeach; ?>
+            </div>
+        </section>
+        <?php
         wp_reset_postdata();
+        return ob_get_clean();
+    }
 
-        return $output;
+    private function renderSinglePost($article, $prefix)
+    {
+        setup_postdata($article);
+
+        $post_id = $article->ID;
+        $title = get_the_title($post_id);
+        $category_obj = get_the_category($post_id);
+        $category_name = !empty($category_obj) ? $category_obj[0]->name : '';
+        $img_url = get_the_post_thumbnail_url($post_id);
+        $img = $img_url ? $img_url : AIP_PLUGIN_URL . 'assets/img/aip_thumbnail.png';
+        $rating = get_post_meta($post_id, 'rating', true);
+        $permalink = get_permalink($post_id);
+        $site_link = get_post_meta($post_id, 'site_link', true);
+
+        ob_start();
+        ?>
+        <article class="<?php echo $prefix ?>__article">
+            <div class="<?php echo $prefix ?>__article-thumbnail">
+                <img src="<?php echo esc_url($img) ?>" alt="<?php echo esc_attr($title) ?>">
+            </div>
+            <div class="<?php echo $prefix ?>__article-content">
+                <header class="<?php echo $prefix ?>__article-header"> 
+                    <?php if ($category_name) : ?>
+                        <p class="<?php echo $prefix ?>__label"><?php echo esc_html($category_name) ?></p>
+                    <?php endif ?>
+                    <p class="<?php echo $prefix ?>__article-title">
+                        <?php echo esc_html($title) ?>
+                    </p>
+                </header>
+    
+                <footer class="<?php echo $prefix ?>__article-footer">
+                    <a class="<?php echo $prefix ?>__link" href="<?php echo esc_url($permalink) ?>">
+                        <?php echo esc_html__('Read more', 'auto-import-posts') ?>
+                    </a>
+    
+                    <?php if (!empty($rating)) : ?>
+                            <p class="<?php echo $prefix ?>__label">
+                                ⭐️ <?php echo esc_html($rating) ?>
+                            </p>
+                    <?php endif; ?>
+    
+                    <?php if (!empty($site_link)) : ?>
+                        <a class="<?php echo $prefix ?>__btn" target="_blank" 
+                            href="<?php echo esc_url($site_link)  ?>" 
+                            rel="nofollow noopener noreferrer">
+                            <?php echo esc_html__('Visit Site', 'auto-import-posts') ?>
+                        </a>
+                    <?php endif; ?>
+                </footer>
+            </div>
+        </article>
+        <?php
+        return ob_get_clean();
     }
 
     private function enqueueStyles()
@@ -98,7 +112,7 @@ class CreateShortcode
         );
 
         if (intval($shortcode_attr['count']) == 0) {
-            return;
+            return '';
         }
 
         switch ($shortcode_attr['sort']) {
@@ -121,8 +135,6 @@ class CreateShortcode
 
         $articles = get_posts($args);
 
-        if (!empty($articles)) {
-            return $this->renderPosts($articles, $shortcode_attr);
-        }
+        return !empty($articles) ? $this->renderPosts($articles, $shortcode_attr) : '';
     }
 }

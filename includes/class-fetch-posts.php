@@ -37,7 +37,7 @@ class FetchPosts
         }
 
         $body = wp_remote_retrieve_body($response);
-        $posts = json_decode($body);
+        $posts = json_decode($body, true);
 
         return $posts;
     }
